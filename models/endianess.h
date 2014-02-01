@@ -3,11 +3,11 @@
 
 #include "types.h"
 
-u16 get16bit_LE(u8* bytes) {
+static u16 get16bit_LE(u8* bytes) {
 	return(bytes[0] | (bytes[1] << 8));
 }
 
-u32 get32bit_LE(u8* bytes) {
+static u32 get32bit_LE(u8* bytes) {
 	return(
 		(bytes[0]) |
 		(bytes[1] <<  8) |
