@@ -25,7 +25,7 @@ bool texturing = true;
 bool colouring = true;
 bool wireframe = false;
 bool culling = true;
-bool tex_filtering = false;
+bool tex_filtering = true;
 bool alpha = true;
 
 
@@ -262,6 +262,8 @@ int main(int argc, char **argv)
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_CULL_FACE);
+
+	glDepthFunc(GL_LEQUAL);
 
 	const char* model = argv[1];
 	const char* textures = argc == 3 ? argv[2] : NULL;

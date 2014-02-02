@@ -290,8 +290,11 @@ void build_meshes(SCENE* scene, Mesh* meshes, Dlist* dlists, u8* scenedata, unsi
 		Dlist* dlist = &dlists[mesh->dlistid];
 		u32* data = (u32*) (scenedata + dlist->start_ofs);
 		m->matid = mesh->matid;
-		m->dlistid = glGenLists(1);
-		glNewList(m->dlistid, GL_COMPILE);
+		m->dlistid = mesh->dlistid;
+		if(scene->dlists[m->dlistid] != -1)
+			continue;
+		scene->dlists[m->dlistid] = glGenLists(1);
+		glNewList(scene->dlists[m->dlistid], GL_COMPILE);
 		do_dlist(data, dlist->size);
 		glEndList();
 	}
@@ -443,15 +446,19 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 		}
 		if(translucent && tex->opaque) {
 			printf("texture %d marked as opaque but pixels are transparent\n", mat->texid);
+			scn->textures[mat->texid].opaque = 0;
 		} else if(!translucent && !tex->opaque) {
 			printf("texture %d marked as translucent but all pixels are opaque (%d)\n", mat->texid, tex->format);
+			scn->textures[mat->texid].opaque = 1;
 		}
 
 		glGenTextures(1, &scn->materials[m].tex);
 		glBindTexture(GL_TEXTURE_2D, scn->materials[m].tex);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->width, tex->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)image);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		free(image);
 	}
@@ -514,10 +521,13 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 	unsigned int meshcount = 0;
 	Mesh* end = (Mesh*) (scenedata + scenesize);
 	Mesh* mesh;
+	scene->num_dlists = 0;
 	for(mesh = meshes; mesh < end; mesh++) {
 		meshcount++;
 		mesh->matid = get16bit_LE((u8*)&mesh->matid);
 		mesh->dlistid = get16bit_LE((u8*)&mesh->dlistid);
+		if(mesh->dlistid >= scene->num_dlists)
+			scene->num_dlists = mesh->dlistid + 1;
 		Dlist* dlist = &dlists[mesh->dlistid];
 		dlist->start_ofs = get32bit_LE((u8*)&dlist->start_ofs);
 		dlist->size = get32bit_LE((u8*)&dlist->size);
@@ -529,6 +539,10 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 		}
 	}
 	scene->num_meshes = meshcount;
+
+	scene->dlists = (int*) malloc(scene->num_dlists * sizeof(int));
+	for(i = 0; i < scene->num_dlists; i++)
+		scene->dlists[i] = -1;
 
 	make_textures(scene, materials, scene->num_materials, textures, scene->num_textures, palettes, texturedata, texturesize);
 
@@ -586,12 +600,13 @@ void SCENE_free(SCENE* scene)
 	for(i = 0; i < scene->num_materials; i++) {
 		glDeleteTextures(1, &scene->materials[i].tex);
 	}
-	for(i = 0; i < scene->num_meshes; i++) {
-		glDeleteLists(1, scene->meshes[i].dlistid);
+	for(i = 0; i < scene->num_dlists; i++) {
+		glDeleteLists(1, scene->dlists[i]);
 	}
 	free(scene->textures);
 	free(scene->materials);
 	free(scene->meshes);
+	free(scene->dlists);
 	free(scene);
 }
 
@@ -619,7 +634,7 @@ void SCENE_render(SCENE* scene)
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
-		glCallList(mesh->dlistid);
+		glCallList(scene->dlists[mesh->dlistid]);
 	}
 
 
@@ -647,7 +662,7 @@ void SCENE_render(SCENE* scene)
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
-		glCallList(mesh->dlistid);
+		glCallList(scene->dlists[mesh->dlistid]);
 	}
 	glDepthMask(GL_TRUE);
 	glDisable(GL_BLEND);

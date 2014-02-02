@@ -28,10 +28,12 @@ typedef struct {
 	MATERIAL*			materials;
 	NODE*				nodes;
 	MESH*				meshes;
+	int*				dlists;
 	unsigned int			num_meshes;
 	TEXTURE*			textures;
 	unsigned int			num_textures;
 	unsigned int			num_materials;
+	unsigned int			num_dlists;
 } SCENE;
 
 SCENE*	SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsigned int texturesize);
