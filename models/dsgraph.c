@@ -217,7 +217,7 @@ void display_func(void)
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(90.0f, aspect, 0.002f, 32.0f);
+	gluPerspective(90.0f, aspect, 0.01f, 32.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -269,8 +269,8 @@ int main(int argc, char **argv)
 	const char* textures = argc == 3 ? argv[2] : NULL;
 	scene = SCENE_load_file(model, textures);
 
-	printf(" - Hold left mouse button to zoom\n");
-	printf(" - Hold right mouse button to rotate\n");
+	printf(" - Hold left mouse button to look around\n");
+	printf(" - Up/Down moves around\n");
 	printf(" - T toggles texturing\n");
 	printf(" - C toggles vertex colours\n");
 	printf(" - W toggles wireframe\n");
