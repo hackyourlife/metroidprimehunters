@@ -12,10 +12,6 @@
 
 #define M_PI		3.14159265358979323846
 
-
-
-
-
 #include "scene.h"
 
 SCENE* scene = 0;
@@ -27,7 +23,6 @@ bool wireframe = false;
 bool culling = true;
 bool tex_filtering = true;
 bool alpha = true;
-
 
 float sin_deg(float deg) {
 	return sin(deg * M_PI / 180);
@@ -132,8 +127,16 @@ void special_up_func(int key, int x, int y)
 void kb_func(unsigned char key, int x, int y)
 {
 	switch(key) {
+		case 0x1b:
+			exit(0);
+			break;
 		case 't':	case 'T': {
 			texturing = !texturing;
+			if(texturing) {
+				glEnable(GL_TEXTURE_2D);
+			} else {
+				glDisable(GL_TEXTURE_2D);
+			}
 			glutPostRedisplay();
 		}
 		break;
@@ -231,15 +234,19 @@ void display_func(void)
 	glutSwapBuffers();
 }
 
-
-
-
-
-
 int main(int argc, char **argv)
 {
 	unsigned int i;
-	if((argc != 2) && (argc != 3)) {
+	char* modestring = NULL;
+	int use_game_mode = 0;
+	argc--;
+	argv++;
+	if(argc > 1 && !strcmp(argv[0], "-f")) {
+		modestring = argv[1];
+		argc -= 2;
+		argv += 2;
+	}
+	if((argc != 1) && (argc != 2)) {
 		printf("Metroid Prime Hunters model viewer\n");
 		printf("Usage: dsgraph <filename> [textures]\n");
 		exit(0);
@@ -247,9 +254,20 @@ int main(int argc, char **argv)
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
-	glutInitWindowSize(512, 512);
-	glutInitWindowPosition(100, 100);
-	glutCreateWindow("dsgraph");
+	if(modestring) {
+		glutGameModeString(modestring);
+		int possible = glutGameModeGet(GLUT_GAME_MODE_POSSIBLE);
+		if(possible) {
+			glutEnterGameMode();
+			use_game_mode = 1;
+		}
+	}
+	if(!use_game_mode) {
+		glutInitWindowSize(512, 512);
+		glutInitWindowPosition(100, 100);
+		glutCreateWindow("dsgraph");
+	}
+
 	glutDisplayFunc(display_func);
 	glutIdleFunc(display_func);
 	glutMouseFunc(mouse_func);
@@ -265,8 +283,8 @@ int main(int argc, char **argv)
 
 	glDepthFunc(GL_LEQUAL);
 
-	const char* model = argv[1];
-	const char* textures = argc == 3 ? argv[2] : NULL;
+	const char* model = argv[0];
+	const char* textures = argc == 2 ? argv[1] : NULL;
 	scene = SCENE_load_file(model, textures);
 
 	printf(" - Hold left mouse button to look around\n");
