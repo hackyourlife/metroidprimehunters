@@ -612,6 +612,7 @@ void SCENE_free(SCENE* scene)
 
 void SCENE_render(SCENE* scene)
 {
+	GLboolean cull;
 	unsigned int i;
 	// pass 1: opaque
 	for(i = 0; i < scene->num_meshes; i++) {
@@ -639,6 +640,8 @@ void SCENE_render(SCENE* scene)
 
 
 	// pass 2: translucent
+	glGetBooleanv(GL_CULL_FACE, &cull);
+	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glDepthMask(GL_FALSE);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -666,4 +669,7 @@ void SCENE_render(SCENE* scene)
 	}
 	glDepthMask(GL_TRUE);
 	glDisable(GL_BLEND);
+	if(cull) {
+		glEnable(GL_CULL_FACE);
+	}
 }
