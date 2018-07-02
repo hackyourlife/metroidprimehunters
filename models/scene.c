@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include <float.h>
 #include <GL/gl.h>
+#include <GL/glext.h> // for mingw
 
 #include "types.h"
 #include "endianess.h"
@@ -27,74 +29,189 @@ void fatal(const char* message)
 
 #define print_once(message)			{ static bool done_it = false; if(!done_it) { printf(message); done_it = true; } }
 
+typedef s32		fx32;
+
+enum CULL_MODE {
+	DOUBLE_SIDED = 0,
+	BACK_SIDE = 1,
+	FRONT_SIDE = 2
+};
+
+enum ALPHA_MODE {
+	NONE = 0,
+	DISABLE = 1,
+	ALPHA_BLACK = 2,
+	INVISIBLE = 3
+};
+
+enum REPEAT_MODE {
+	CLAMP = 0,
+	REPEAT = 1,
+	MIRROR = 2
+};
+
 typedef struct {
-	u8				name[64];
-	u32				flags;
-	u16				palid;
-	u16				texid;
-	u32				dunno2[15];
+	fx32		x;
+	fx32		y;
+	fx32		z;
+} VecFx32;
+
+typedef struct {
+	fx32		m[4][3];
+} MtxFx43;
+
+typedef struct {
+	u8		r;
+	u8		g;
+	u8		b;
+} Color3;
+
+typedef struct {
+	u8		name[64];
+	u8		light;
+	u8		culling;
+	u16		alpha;
+	u16		palid;
+	u16		texid;
+	u8		x_repeat;
+	u8		y_repeat;
+	Color3		color1;
+	Color3		color2;
+	Color3		color3;
+	u8		field_53;
+	u32		alpha_mode;
+	u8		field_58;
+	u8		unk1;
+	u16		field_5A;
+	u32		texcoord_transform_mode;
+	u16		matrix_animation;
+	u16		field_62;
+	u32		matrix_id;
+	u32		field_68;
+	u32		field_6C;
+	u16		field_70;
+	u16		field_72;
+	u32		scale_width;
+	u32		scale_height;
+	u16		material_animation;
+	u16		field_7E;
+	u8		packed_repeat_mode;
+	u8		field_81;
+	u16		field_82;
 } Material;
 
 typedef struct {
-	u32				start_ofs;
-	u32				size;
-	s32				bounds[3][2];
+	u32		start_ofs;
+	u32		size;
+	s32		bounds[3][2];
 } Dlist;
 
 typedef struct {
-	u8				name[64];
-	u32				dunno[104];
+	u8		name[64];
+	// u32		dunno[104];
+	u16		parent;
+	u16		child;
+	u16		next;
+	u16		field_46;
+	u32		some_name;
+	u16		mesh_count;
+	u16		mesh_id;
+	u32		field_50;
+	u32		field_54;
+	u32		field_58;
+	u16		field_5C;
+	u16		field_5E;
+	u16		field_60;
+	u16		field_62;
+	u32		field_64;
+	u32		field_68;
+	u32		field_6C;
+	u32		field_70;
+	VecFx32		vec1;
+	VecFx32		vec2;
+	u8		type;
+	u8		field_8D;
+	u16		field_8E;
+	MtxFx43		a_matrix;
+	u32		field_C0;
+	u32		field_C4;
+	u32		field_C8;
+	u32		field_CC;
+	u32		field_D0;
+	u32		field_D4;
+	u32		field_D8;
+	u32		field_DC;
+	u32		field_E0;
+	u32		field_E4;
+	u32		field_E8;
+	u32		field_EC;
 } Node;
 
 typedef struct {
-	u16				matid;
-	u16				dlistid;
+	u16		matid;
+	u16		dlistid;
 } Mesh;
 
 typedef struct {
-	u16				format;
-	u16				width;
-	u16				height;
-	u16				pad;
-	u32				image_ofs;
-	u32				imagesize;
-	u32				dunno1;
-	u32				dunno2;
-	u32				dunno3;
-	u32				opaque;
-	u32				dunno4;
-	u32				dunno5;
+	u16		format;
+	u16		width;
+	u16		height;
+	u16		pad;
+	u32		image_ofs;
+	u32		imagesize;
+	u32		dunno1;
+	u32		dunno2;
+	u32		vram_offset;
+	u32		opaque;
+	u32		some_value;
+	u8		packed_size;
+	u8		something_with_format;
+	u16		some_reference;
 } Texture;
 
 typedef struct {
-	u32				entries_ofs;
-	u32				count;
-	u32				dunno1;
-	u32				dunno2;
+	u32		entries_ofs;
+	u32		count;
+	u32		dunno1;
+	u32		some_reference;
 } Palette;
 
 typedef struct {
-	u32				dunno1;
-	u32				dunno2;
-	u32				dunno3;
-	u32				dunno4;
-	u32				materials;
-	u32				dlists;
-	u32				nodes;
-	u32				dunno5;
-	u32				dunno6;
-	u32				meshes;
-	u32				num_meshes;		//maybe
-	u32				textures;
-	u32				num_textures;
-	u32				palettes;
-	u32				dunno7[4];
-	u16				num_materials;
-	u16				dunno8;
+	u32		unk1;
+	s32		scale;
+	u32		unk3;
+	u32		unk4;
+	u32		materials;
+	u32		dlists;
+	u32		nodes;
+	u16		unk_anim_count;
+	u8		flags;
+	u8		field_1F;
+	u32		unk6;
+	u32		meshes;
+	u16		num_textures;
+	u16		field_2A;
+	u32		textures;
+	u16		palette_count;
+	u16		field_32;
+	u32		palettes;
+	u32		some_anim_counts;
+	u32		unk8;
+	u32		some_mtx;
+	u32		initial_mtx;
+	u16		num_materials;
+	u16		num_nodes;
+	u32		texture_matrices;
+	u32		something_with_nodes;
+	u32		texture_transform_anims;
+	u32		material_anims;
+	u32		texture_anims;
+	u16		num_meshes;
+	u16		num_matrices;
 } __attribute__((__packed__)) HEADER;
 
 
-void do_reg(u32 reg, u32** data_pp, float vtx_state[3])
+void do_reg(u32 reg, u32** data_pp, float vtx_state[3], SCENE* scene)
 {
 	u32* data = *data_pp;
 
@@ -150,6 +267,22 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3])
 			vtx_state[1] = ((float)y) / 4096.0f;
 			vtx_state[2] = ((float)z) / 4096.0f;
 			glVertex3fv(vtx_state);
+
+			if(vtx_state[0] < scene->min_x) {
+				scene->min_x = vtx_state[0];
+			} else if(vtx_state[0] > scene->max_x) {
+				scene->max_x = vtx_state[0];
+			}
+			if(vtx_state[1] < scene->min_y) {
+				scene->min_y = vtx_state[1];
+			} else if(vtx_state[1] > scene->max_y) {
+				scene->max_y = vtx_state[1];
+			}
+			if(vtx_state[2] < scene->min_z) {
+				scene->min_z = vtx_state[0];
+			} else if(vtx_state[2] > scene->max_z) {
+				scene->max_z = vtx_state[2];
+			}
 		}
 		break;
 
@@ -163,6 +296,22 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3])
 			vtx_state[1] = ((float)y) / 64.0f;
 			vtx_state[2] = ((float)z) / 64.0f;
 			glVertex3fv(vtx_state);
+
+			if(vtx_state[0] < scene->min_x) {
+				scene->min_x = vtx_state[0];
+			} else if(vtx_state[0] > scene->max_x) {
+				scene->max_x = vtx_state[0];
+			}
+			if(vtx_state[1] < scene->min_y) {
+				scene->min_y = vtx_state[1];
+			} else if(vtx_state[1] > scene->max_y) {
+				scene->max_y = vtx_state[1];
+			}
+			if(vtx_state[2] < scene->min_z) {
+				scene->min_z = vtx_state[0];
+			} else if(vtx_state[2] > scene->max_z) {
+				scene->max_z = vtx_state[2];
+			}
 		}
 		break;
 
@@ -174,6 +323,17 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3])
 			vtx_state[0] = ((float)x) / 4096.0f;
 			vtx_state[1] = ((float)y) / 4096.0f;
 			glVertex3fv(vtx_state);
+
+			if(vtx_state[0] < scene->min_x) {
+				scene->min_x = vtx_state[0];
+			} else if(vtx_state[0] > scene->max_x) {
+				scene->max_x = vtx_state[0];
+			}
+			if(vtx_state[1] < scene->min_y) {
+				scene->min_y = vtx_state[1];
+			} else if(vtx_state[1] > scene->max_y) {
+				scene->max_y = vtx_state[1];
+			}
 		}
 		break;
 
@@ -185,6 +345,17 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3])
 			vtx_state[0] = ((float)x) / 4096.0f;
 			vtx_state[2] = ((float)z) / 4096.0f;
 			glVertex3fv(vtx_state);
+
+			if(vtx_state[0] < scene->min_x) {
+				scene->min_x = vtx_state[0];
+			} else if(vtx_state[0] > scene->max_x) {
+				scene->max_x = vtx_state[0];
+			}
+			if(vtx_state[2] < scene->min_z) {
+				scene->min_z = vtx_state[0];
+			} else if(vtx_state[2] > scene->max_z) {
+				scene->max_z = vtx_state[2];
+			}
 		}
 		break;
 
@@ -196,6 +367,17 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3])
 			vtx_state[1] = ((float)y) / 4096.0f;
 			vtx_state[2] = ((float)z) / 4096.0f;
 			glVertex3fv(vtx_state);
+
+			if(vtx_state[1] < scene->min_y) {
+				scene->min_y = vtx_state[1];
+			} else if(vtx_state[1] > scene->max_y) {
+				scene->max_y = vtx_state[1];
+			}
+			if(vtx_state[2] < scene->min_z) {
+				scene->min_z = vtx_state[0];
+			} else if(vtx_state[2] > scene->max_z) {
+				scene->max_z = vtx_state[2];
+			}
 		}
 		break;
 
@@ -209,6 +391,22 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3])
 			vtx_state[1] += ((float)y) / 4096.0f;
 			vtx_state[2] += ((float)z) / 4096.0f;
 			glVertex3fv(vtx_state);
+
+			if(vtx_state[0] < scene->min_x) {
+				scene->min_x = vtx_state[0];
+			} else if(vtx_state[0] > scene->max_x) {
+				scene->max_x = vtx_state[0];
+			}
+			if(vtx_state[1] < scene->min_y) {
+				scene->min_y = vtx_state[1];
+			} else if(vtx_state[1] > scene->max_y) {
+				scene->max_y = vtx_state[1];
+			}
+			if(vtx_state[2] < scene->min_z) {
+				scene->min_z = vtx_state[0];
+			} else if(vtx_state[2] > scene->max_z) {
+				scene->max_z = vtx_state[2];
+			}
 		}
 		break;
 
@@ -258,7 +456,7 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3])
 
 */
 
-void do_dlist(u32* data, u32 len)
+void do_dlist(u32* data, u32 len, SCENE* scene)
 {
 	u32* end = data + len / 4;
 
@@ -271,7 +469,7 @@ void do_dlist(u32* data, u32 len)
 		for(c = 0; c < 4; c++,regs >>= 8) {
 			u32 reg = ((regs & 0xFF) << 2) + 0x400;
 
-			do_reg(reg, &data, vtx_state);
+			do_reg(reg, &data, vtx_state, scene);
 		}
 	}
 }
@@ -286,6 +484,13 @@ void build_meshes(SCENE* scene, Mesh* meshes, Dlist* dlists, u8* scenedata, unsi
 	Mesh* mesh;
 	MESH* m;
 
+	scene->min_x = FLT_MAX;
+	scene->min_y = FLT_MAX;
+	scene->min_z = FLT_MAX;
+	scene->max_x = -FLT_MAX;
+	scene->max_y = -FLT_MAX;
+	scene->max_z = -FLT_MAX;
+
 	for(mesh = meshes, m = scene->meshes; mesh < end; mesh++, m++) {
 		Dlist* dlist = &dlists[mesh->dlistid];
 		u32* data = (u32*) (scenedata + dlist->start_ofs);
@@ -295,7 +500,7 @@ void build_meshes(SCENE* scene, Mesh* meshes, Dlist* dlists, u8* scenedata, unsi
 			continue;
 		scene->dlists[m->dlistid] = glGenLists(1);
 		glNewList(scene->dlists[m->dlistid], GL_COMPILE);
-		do_dlist(data, dlist->size);
+		do_dlist(data, dlist->size, scene);
 		glEndList();
 	}
 }
@@ -367,6 +572,8 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 		if(!image)
 			fatal("not enough memory");
 
+		float alpha = mat->alpha / 31.0;
+
 		if(tex->format == 0) {				// 2bit palettised
 			u32 p;
 			for(p = 0; p < num_pixels; p++) {
@@ -376,7 +583,7 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				u32 r = ((col >>  0) & 0x1F) << 3;
 				u32 g = ((col >>  5) & 0x1F) << 3;
 				u32 b = ((col >> 10) & 0x1F) << 3;
-				u32 a = (col & 0x8000) ? 0x00 : 0xFF;
+				u32 a = ((col & 0x8000) ? 0x00 : 0xFF) * alpha;
 				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 			}
 		} else if(tex->format == 1) {			// 4bit palettised
@@ -388,7 +595,7 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				u32 r = ((col >>  0) & 0x1F) << 3;
 				u32 g = ((col >>  5) & 0x1F) << 3;
 				u32 b = ((col >> 10) & 0x1F) << 3;
-				u32 a = (col & 0x8000) ? 0x00 : 0xFF;
+				u32 a = ((col & 0x8000) ? 0x00 : 0xFF) * alpha;
 				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 			}
 		} else if(tex->format == 2) {			// 8bit palettised
@@ -399,14 +606,20 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				u32 r = ((col >>  0) & 0x1F) << 3;
 				u32 g = ((col >>  5) & 0x1F) << 3;
 				u32 b = ((col >> 10) & 0x1F) << 3;
-				u32 a = (col & 0x8000) ? 0x00 : 0xFF;
+				u32 a = ((col & 0x8000) ? 0x00 : 0xFF) * alpha;
 				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 			}
-		} else if(tex->format == 4) {			// 8bit greyscale
+		} else if(tex->format == 4) {			// A5I3
 			u32 p;
 			for(p = 0; p < num_pixels; p++) {
-				u8 col = texels[p];
-				image[p] = (col << 0) | (col << 8) | (col << 16) | (col << 24);
+				u8 entry = texels[p];
+				u8 i = (entry & 0x07);
+				u16 col = get16bit_LE((u8*)&paxels[i]);
+				u32 r = ((col >>  0) & 0x1F) << 3;
+				u32 g = ((col >>  5) & 0x1F) << 3;
+				u32 b = ((col >> 10) & 0x1F) << 3;
+				u32 a = ((entry >> 3) / 31.0 * 255.0) * alpha;
+				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 			}
 		} else if(tex->format == 5) {			// 16it RGB
 			u32 p;
@@ -415,7 +628,7 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				u32 r = ((col >>  0) & 0x1F) << 3;
 				u32 g = ((col >>  5) & 0x1F) << 3;
 				u32 b = ((col >> 10) & 0x1F) << 3;
-				u32 a = (col & 0x8000) ? 0x00 : 0xFF;
+				u32 a = ((col & 0x8000) ? 0x00 : 0xFF) * alpha;
 				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 			}
 		} else {
@@ -424,21 +637,41 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 			memset(image, 0x7F, num_pixels * 4);
 		}
 
-		if(mat->flags == 0x60200) {
-			u32 p;
-			for(p = 0; p < num_pixels; p++) {
-				u32 col = image[p];
-				u32 r = (col >>  0) & 0xFF;
-				u32 g = (col >>  8) & 0xFF;
-				u32 b = (col >> 16) & 0xFF;
-				u32 a = ((r + g + b) / 3) & 0xFF;
-				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
-			}
-			printf("material %d is set to transparent\n", m);
-			scn->textures[mat->texid].opaque = 0;
+		u32 p;
+		switch(mat->alpha_mode) {
+			case NONE:
+				break;
+			case DISABLE:
+				break;
+			case ALPHA_BLACK:
+				for(p = 0; p < num_pixels; p++) {
+					u32 col = image[p];
+					u32 r = (col >>  0) & 0xFF;
+					u32 g = (col >>  8) & 0xFF;
+					u32 b = (col >> 16) & 0xFF;
+					u32 a = (r == 0 && g == 0 && b == 0) ? 0x00 : 0xFF;
+					image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
+				}
+				printf("material %d is set to transparent\n", m);
+				scn->textures[mat->texid].opaque = 0;
+				break;
+			case INVISIBLE:
+				for(p = 0; p < num_pixels; p++) {
+					u32 col = image[p];
+					u32 r = (col >>  0) & 0xFF;
+					u32 g = (col >>  8) & 0xFF;
+					u32 b = (col >> 16) & 0xFF;
+					u32 a = 0x00;
+					image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
+				}
+				printf("material %d is set to transparent\n", m);
+				scn->textures[mat->texid].opaque = 0;
+				break;
+			default:
+				printf("unknown alpha mode %d\n", mat->alpha);
+				break;
 		}
 
-		u32 p;
 		bool translucent = false;
 		for(p = 0; p < num_pixels; p++) {
 			if(((image[p] >> 24) & 0xFF) != 0xFF)
@@ -459,9 +692,53 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		switch(mat->x_repeat) {
+			case CLAMP:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				break;
+			case REPEAT:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+				break;
+			case MIRROR:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+				break;
+			default:
+				printf("unknown repeat mode %d\n", mat->x_repeat);
+		}
+		switch(mat->y_repeat) {
+			case CLAMP:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				break;
+			case REPEAT:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				break;
+			case MIRROR:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+				break;
+			default:
+				printf("unknown repeat mode %d\n", mat->x_repeat);
+		}
 		glBindTexture(GL_TEXTURE_2D, 0);
 		free(image);
 	}
+}
+
+static char* get_room_node_name(NODE* nodes, unsigned int node_cnt)
+{
+	char* name = "rmMain";
+	if(node_cnt > 0) {
+		NODE* node = nodes;
+		int i = 0;
+		while(node->name[0] != 'r' || node->name[1] != 'm') {
+			node++;
+			i++;
+			if(i >= node_cnt) {
+				return name;
+			}
+		}
+		name = node->name;
+	}
+	return name;
 }
 
 SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsigned int texturesize)
@@ -474,6 +751,8 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 
 	HEADER* rawheader = (HEADER*) scenedata;
 
+	scene->scale		= get32bit_LE((u8*)&rawheader->scale) / 4096.0f;
+
 	Material* materials	= (Material*)	((uintptr_t)scenedata + (uintptr_t)get32bit_LE((u8*)&rawheader->materials));
 	Dlist* dlists		= (Dlist*)	((uintptr_t)scenedata + (uintptr_t)get32bit_LE((u8*)&rawheader->dlists));
 	Node* nodes		= (Node*)	((uintptr_t)scenedata + (uintptr_t)get32bit_LE((u8*)&rawheader->nodes));
@@ -481,11 +760,31 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 	Texture* textures	= (Texture*)	((uintptr_t)scenedata + (uintptr_t)get32bit_LE((u8*)&rawheader->textures));
 	Palette* palettes	= (Palette*)	((uintptr_t)scenedata + (uintptr_t)get32bit_LE((u8*)&rawheader->palettes));
 
-	scene->num_textures	= get32bit_LE((u8*)&rawheader->num_textures);
+	scene->num_textures	= get16bit_LE((u8*)&rawheader->num_textures);
 	scene->num_materials	= get16bit_LE((u8*)&rawheader->num_materials);
+	scene->num_nodes	= get16bit_LE((u8*)&rawheader->num_nodes);
 
 	scene->materials = (MATERIAL*) malloc(scene->num_materials * sizeof(MATERIAL));
 	scene->textures = (TEXTURE*) malloc(scene->num_textures * sizeof(TEXTURE));
+	scene->nodes = (NODE*) malloc(scene->num_nodes * sizeof(NODE));
+
+	for(i = 0; i < scene->num_nodes; i++) {
+		NODE* node = &scene->nodes[i];
+		Node* raw = &nodes[i];
+
+		strncpy(node->name, raw->name, 64);
+		node->parent = get16bit_LE((u8*)&raw->parent);
+		node->child = get16bit_LE((u8*)&raw->child);
+		node->next = get16bit_LE((u8*)&raw->next);
+		node->mesh_count = get16bit_LE((u8*)&raw->mesh_count);
+		node->mesh_id = get16bit_LE((u8*)&raw->mesh_id);
+	}
+
+	scene->room_node_name = get_room_node_name(scene->nodes, scene->num_nodes);
+
+	printf("scale: %f\n", scene->scale);
+	printf("room node: '%s'\n", scene->room_node_name);
+
 	if(!scene->materials || !scene->textures)
 		fatal("not enough memory");
 
@@ -497,7 +796,12 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 		MATERIAL* mat = &scene->materials[i];
 		strcpy(mat->name, m->name);
 		mat->texid = m->texid;
-		mat->flags = m->flags;
+		mat->light = m->light;
+		mat->culling = m->culling;
+		mat->alpha = get16bit_LE((u8*)&m->alpha);
+		mat->x_repeat = m->x_repeat;
+		mat->y_repeat = m->y_repeat;
+		mat->alpha_mode = get32bit_LE((u8*)&m->alpha_mode);
 
 		unsigned int p = m->palid;
 		if(p == 0xFFFF)
@@ -607,12 +911,13 @@ void SCENE_free(SCENE* scene)
 	free(scene->materials);
 	free(scene->meshes);
 	free(scene->dlists);
+	free(scene->nodes);
 	free(scene);
 }
 
 void SCENE_render(SCENE* scene)
 {
-	GLboolean cull;
+	// GLboolean cull;
 	unsigned int i;
 	// pass 1: opaque
 	for(i = 0; i < scene->num_meshes; i++) {
@@ -635,13 +940,27 @@ void SCENE_render(SCENE* scene)
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
+		switch(material->culling) {
+			case DOUBLE_SIDED:
+				glDisable(GL_CULL_FACE);
+				break;
+			case BACK_SIDE:
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_FRONT);
+				break;
+			case FRONT_SIDE:
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+				break;
+		}
+
 		glCallList(scene->dlists[mesh->dlistid]);
 	}
 
 
 	// pass 2: translucent
-	glGetBooleanv(GL_CULL_FACE, &cull);
-	glDisable(GL_CULL_FACE);
+	// glGetBooleanv(GL_CULL_FACE, &cull);
+	// glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glDepthMask(GL_FALSE);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -665,11 +984,25 @@ void SCENE_render(SCENE* scene)
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
+		switch(material->culling) {
+			case DOUBLE_SIDED:
+				glDisable(GL_CULL_FACE);
+				break;
+			case BACK_SIDE:
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_FRONT);
+				break;
+			case FRONT_SIDE:
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+				break;
+		}
+
 		glCallList(scene->dlists[mesh->dlistid]);
 	}
 	glDepthMask(GL_TRUE);
 	glDisable(GL_BLEND);
-	if(cull) {
-		glEnable(GL_CULL_FACE);
-	}
+	// if(cull) {
+	// 	glEnable(GL_CULL_FACE);
+	// }
 }

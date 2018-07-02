@@ -124,6 +124,8 @@ void special_up_func(int key, int x, int y)
 	}
 }
 
+bool depth_test = true;
+
 void kb_func(unsigned char key, int x, int y)
 {
 	switch(key) {
@@ -137,6 +139,13 @@ void kb_func(unsigned char key, int x, int y)
 			} else {
 				glDisable(GL_TEXTURE_2D);
 			}
+			glutPostRedisplay();
+		}
+		break;
+
+		case 'd':	case 'D': {
+			depth_test = !depth_test;
+			(depth_test ? glEnable : glDisable)(GL_DEPTH_TEST);
 			glutPostRedisplay();
 		}
 		break;
@@ -218,9 +227,20 @@ void display_func(void)
 	glGetFloatv(GL_VIEWPORT, vp);
 	float aspect = (vp[2] - vp[0]) / (vp[3] - vp[1]);
 
+	float size_x = fabsf(scene->max_x - scene->min_x);
+	float size_y = fabsf(scene->max_y - scene->min_y);
+	float size_z = fabsf(scene->max_z - scene->min_z);
+	float size = size_x;
+	if(size_y > size) {
+		size = size_y;
+	}
+	if(size_z > size) {
+		size = size_z;
+	}
+
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(90.0f, aspect, 0.01f, 32.0f);
+	gluPerspective(90.0f, aspect, 0.001f, size);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -228,6 +248,8 @@ void display_func(void)
 	glRotatef(xrot, 1, 0, 0);
 	glRotatef(360.0f - yrot, 0, 1, 0);
 	glTranslatef(-pos_x, -pos_y, -pos_z);
+
+	glScalef(scene->scale, scene->scale, scene->scale);
 
 	SCENE_render(scene);
 
@@ -267,6 +289,8 @@ int main(int argc, char **argv)
 		glutInitWindowPosition(100, 100);
 		glutCreateWindow("dsgraph");
 	}
+
+	printf("using depth buffer with %d bit\n", glutGet(GLUT_WINDOW_DEPTH_SIZE));
 
 	glutDisplayFunc(display_func);
 	glutIdleFunc(display_func);
