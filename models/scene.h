@@ -7,7 +7,9 @@ typedef struct {
 	unsigned char			culling;
 	unsigned char			x_repeat;
 	unsigned char			y_repeat;
-	unsigned int			alpha_mode;
+	unsigned int			polygon_mode;
+	float				scale_s;
+	float				scale_t;
 	unsigned int			alpha;
 	unsigned int			texid;
 	unsigned int			tex;

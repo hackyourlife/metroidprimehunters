@@ -29,7 +29,11 @@ void fatal(const char* message)
 
 #define print_once(message)			{ static bool done_it = false; if(!done_it) { printf(message); done_it = true; } }
 
+typedef float		f32;
 typedef s32		fx32;
+
+#define FX32_SHIFT		12
+#define FX_FX32_TO_F32(x)	((f32)((x) / (f32)(1 << FX32_SHIFT)))
 
 enum CULL_MODE {
 	DOUBLE_SIDED = 0,
@@ -37,11 +41,11 @@ enum CULL_MODE {
 	FRONT_SIDE = 2
 };
 
-enum ALPHA_MODE {
-	NONE = 0,
-	DISABLE = 1,
-	ALPHA_BLACK = 2,
-	INVISIBLE = 3
+enum POLYGON_MODE {
+	MODULATION = 0,
+	DECAL = 1,
+	HIGHLIGHT = 2,
+	SHADOW = 3
 };
 
 enum REPEAT_MODE {
@@ -79,21 +83,21 @@ typedef struct {
 	Color3		color2;
 	Color3		color3;
 	u8		field_53;
-	u32		alpha_mode;
-	u8		field_58;
-	u8		unk1;
+	u32		polygon_mode;
+	u8		polygon_id;
+	u8		anim_flags;
 	u16		field_5A;
 	u32		texcoord_transform_mode;
-	u16		matrix_animation;
+	u16		texcoord_animation_id;
 	u16		field_62;
 	u32		matrix_id;
-	u32		field_68;
-	u32		field_6C;
-	u16		field_70;
+	u32		scale_s;
+	u32		scale_t;
+	u16		rot_z;
 	u16		field_72;
 	u32		scale_width;
 	u32		scale_height;
-	u16		material_animation;
+	u16		material_animation_id;
 	u16		field_7E;
 	u8		packed_repeat_mode;
 	u8		field_81;
@@ -165,8 +169,8 @@ typedef struct {
 	u32		opaque;
 	u32		some_value;
 	u8		packed_size;
-	u8		something_with_format;
-	u16		some_reference;
+	u8		native_texture_format;
+	u16		texture_obj_ref;
 } Texture;
 
 typedef struct {
@@ -177,7 +181,7 @@ typedef struct {
 } Palette;
 
 typedef struct {
-	u32		unk1;
+	u32		modelview_mtx_shamt;
 	s32		scale;
 	u32		unk3;
 	u32		unk4;
@@ -187,7 +191,7 @@ typedef struct {
 	u16		unk_anim_count;
 	u8		flags;
 	u8		field_1F;
-	u32		unk6;
+	u32		some_node_id;
 	u32		meshes;
 	u16		num_textures;
 	u16		field_2A;
@@ -197,15 +201,15 @@ typedef struct {
 	u32		palettes;
 	u32		some_anim_counts;
 	u32		unk8;
-	u32		some_mtx;
-	u32		initial_mtx;
+	u32		node_initial_pos;
+	u32		node_pos;
 	u16		num_materials;
 	u16		num_nodes;
 	u32		texture_matrices;
-	u32		something_with_nodes;
-	u32		texture_transform_anims;
-	u32		material_anims;
-	u32		texture_anims;
+	u32		node_animation;
+	u32		texcoord_animations;
+	u32		material_animations;
+	u32		texture_animations;
 	u16		num_meshes;
 	u16		num_matrices;
 } __attribute__((__packed__)) HEADER;
@@ -638,12 +642,12 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 		}
 
 		u32 p;
-		switch(mat->alpha_mode) {
-			case NONE:
+		switch(mat->polygon_mode) {
+			case MODULATION:
 				break;
-			case DISABLE:
+			case DECAL:
 				break;
-			case ALPHA_BLACK:
+			case HIGHLIGHT:
 				for(p = 0; p < num_pixels; p++) {
 					u32 col = image[p];
 					u32 r = (col >>  0) & 0xFF;
@@ -655,7 +659,7 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				printf("material %d is set to transparent\n", m);
 				scn->textures[mat->texid].opaque = 0;
 				break;
-			case INVISIBLE:
+			case SHADOW:
 				for(p = 0; p < num_pixels; p++) {
 					u32 col = image[p];
 					u32 r = (col >>  0) & 0xFF;
@@ -801,7 +805,9 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 		mat->alpha = get16bit_LE((u8*)&m->alpha);
 		mat->x_repeat = m->x_repeat;
 		mat->y_repeat = m->y_repeat;
-		mat->alpha_mode = get32bit_LE((u8*)&m->alpha_mode);
+		mat->polygon_mode = get32bit_LE((u8*)&m->polygon_mode);
+		mat->scale_s = FX_FX32_TO_F32(get32bit_LE((u8*)&m->scale_s));
+		mat->scale_t = FX_FX32_TO_F32(get32bit_LE((u8*)&m->scale_t));
 
 		unsigned int p = m->palid;
 		if(p == 0xFFFF)
@@ -936,6 +942,7 @@ void SCENE_render(SCENE* scene)
 			glMatrixMode(GL_TEXTURE);
 			glLoadIdentity();
 			glScalef(1.0f / texture->width, 1.0f / texture->height, 1.0f);
+			glScalef(material->scale_s, material->scale_t, 1.0f);
 		} else {
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
@@ -980,6 +987,7 @@ void SCENE_render(SCENE* scene)
 			glMatrixMode(GL_TEXTURE);
 			glLoadIdentity();
 			glScalef(1.0f / texture->width, 1.0f / texture->height, 1.0f);
+			glScalef(material->scale_s, material->scale_t, 1.0f);
 		} else {
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
