@@ -20,6 +20,7 @@ typedef struct {
 	unsigned int			alpha;
 	unsigned int			texid;
 	unsigned int			tex;
+	unsigned int			translucent;
 } MATERIAL;
 
 typedef struct {

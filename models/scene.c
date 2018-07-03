@@ -599,7 +599,7 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 					u32 r = (col >>  0) & 0xFF;
 					u32 g = (col >>  8) & 0xFF;
 					u32 b = (col >> 16) & 0xFF;
-					u32 a = mat->alpha;
+					u32 a = 0xFF * alpha;
 					image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 				}
 				break;
@@ -610,6 +610,26 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 			default:
 				printf("unknown alpha mode %d\n", mat->alpha);
 				break;
+		}
+
+		int translucent = 0;
+		for(p = 0; p < num_pixels; p++) {
+			u32 col = image[p];
+			u32 a = (col >> 24) & 0xFF;
+			if(a != 0xFF) {
+				translucent = 1;
+				break;
+			}
+		}
+		scn->materials[m].translucent = !tex->opaque || mat->alpha != 31;
+		if(scn->materials[m].translucent) {
+			if(!translucent) {
+				printf("%d [%s]: strange, this should be opaque (alpha: %d, fmt: %d, opaque: %d)\n", m, mat->name, mat->alpha, tex->format, tex->opaque);
+				scn->materials[m].translucent = 0;
+			}
+		} else if(translucent) {
+			printf("%d [%s]: strange, this should be translucent (alpha: %d, fmt: %d, opaque: %d)\n", m, mat->name, mat->alpha, tex->format, tex->opaque);
+			scn->materials[m].translucent = 1;
 		}
 
 		glGenTextures(1, &scn->materials[m].tex);
@@ -946,12 +966,12 @@ void SCENE_render_all(SCENE* scene)
 	// GLboolean cull;
 	unsigned int i;
 	// pass 1: opaque
+	glDepthMask(GL_TRUE);
 	for(i = 0; i < scene->num_meshes; i++) {
 		MESH* mesh = &scene->meshes[i];
 		MATERIAL* material = &scene->materials[mesh->matid];
-		TEXTURE* texture = &scene->textures[material->texid];
 
-		if(material->texid != 0xFFFF && (!texture->opaque || material->alpha != 31))
+		if(material->texid != 0xFFFF && material->translucent)
 			continue;
 
 		SCENE_render_mesh(scene, i);
@@ -969,7 +989,7 @@ void SCENE_render_all(SCENE* scene)
 		MATERIAL* material = &scene->materials[mesh->matid];
 		TEXTURE* texture = &scene->textures[material->texid];
 
-		if(material->texid != 0xFFFF && !(!texture->opaque || material->alpha != 31))
+		if(material->texid != 0xFFFF && !material->translucent)
 			continue;
 
 		SCENE_render_mesh(scene, i);
@@ -1003,6 +1023,7 @@ void SCENE_render_all_nodes(SCENE* scene)
 	unsigned int i, j;
 
 	// pass 1: opaque
+	glDepthMask(GL_TRUE);
 	for(i = 0; i < scene->num_nodes; i++) {
 		NODE* node = &scene->nodes[i];
 		if(node->mesh_count > 0 && node->enabled == 1) {
@@ -1013,7 +1034,7 @@ void SCENE_render_all_nodes(SCENE* scene)
 				MATERIAL* material = &scene->materials[mesh->matid];
 				TEXTURE* texture = &scene->textures[material->texid];
 
-				if(material->texid != 0xFFFF && (!texture->opaque || material->alpha != 31))
+				if(material->texid != 0xFFFF && material->translucent)
 					continue;
 
 				SCENE_render_mesh(scene, id);
@@ -1036,7 +1057,7 @@ void SCENE_render_all_nodes(SCENE* scene)
 				MATERIAL* material = &scene->materials[mesh->matid];
 				TEXTURE* texture = &scene->textures[material->texid];
 
-				if(material->texid != 0xFFFF && !(!texture->opaque || material->alpha != 31))
+				if(material->texid != 0xFFFF && !material->translucent)
 					continue;
 
 				SCENE_render_mesh(scene, id);
