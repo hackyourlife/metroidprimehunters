@@ -503,8 +503,6 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 
 		u32 num_pixels = (u32)tex->width * (u32)tex->height;
 
-		//printf("TEX(%s): %X %X %X %X %X %X\n", mat->name, tex->dunno1, tex->dunno2, tex->dunno3, tex->dunno4, tex->dunno5, mat->dunno1);
-
 		u32 texsize = num_pixels;
 		if(tex->format == 0)
 			texsize /= 4;
@@ -537,7 +535,7 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				u32 r = ((col >>  0) & 0x1F) << 3;
 				u32 g = ((col >>  5) & 0x1F) << 3;
 				u32 b = ((col >> 10) & 0x1F) << 3;
-				u32 a = ((col & 0x8000) ? 0x00 : 0xFF) * alpha;
+				u32 a = (tex->opaque ? 0xFF : (index == 0 ? 0x00 : 0xFF)) * alpha;
 				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 			}
 		} else if(tex->format == 1) {			// 4bit palettised
@@ -549,7 +547,7 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				u32 r = ((col >>  0) & 0x1F) << 3;
 				u32 g = ((col >>  5) & 0x1F) << 3;
 				u32 b = ((col >> 10) & 0x1F) << 3;
-				u32 a = ((col & 0x8000) ? 0x00 : 0xFF) * alpha;
+				u32 a = (tex->opaque ? 0xFF : (index == 0 ? 0x00 : 0xFF)) * alpha;
 				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 			}
 		} else if(tex->format == 2) {			// 8bit palettised
@@ -560,7 +558,7 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				u32 r = ((col >>  0) & 0x1F) << 3;
 				u32 g = ((col >>  5) & 0x1F) << 3;
 				u32 b = ((col >> 10) & 0x1F) << 3;
-				u32 a = ((col & 0x8000) ? 0x00 : 0xFF) * alpha;
+				u32 a = (tex->opaque ? 0xFF : (index == 0 ? 0x00 : 0xFF)) * alpha;
 				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 			}
 		} else if(tex->format == 4) {			// A5I3
@@ -596,47 +594,22 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 			case MODULATION:
 				break;
 			case DECAL:
+				for(p = 0; p < num_pixels; p++) {
+					u32 col = image[p];
+					u32 r = (col >>  0) & 0xFF;
+					u32 g = (col >>  8) & 0xFF;
+					u32 b = (col >> 16) & 0xFF;
+					u32 a = mat->alpha;
+					image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
+				}
 				break;
 			case HIGHLIGHT:
-				for(p = 0; p < num_pixels; p++) {
-					u32 col = image[p];
-					u32 r = (col >>  0) & 0xFF;
-					u32 g = (col >>  8) & 0xFF;
-					u32 b = (col >> 16) & 0xFF;
-					u32 a = (r == 0 && g == 0 && b == 0) ? 0x00 : 0xFF;
-					image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
-				}
-				printf("material %d is set to transparent\n", m);
-				scn->textures[mat->texid].opaque = 0;
 				break;
 			case SHADOW:
-				for(p = 0; p < num_pixels; p++) {
-					u32 col = image[p];
-					u32 r = (col >>  0) & 0xFF;
-					u32 g = (col >>  8) & 0xFF;
-					u32 b = (col >> 16) & 0xFF;
-					u32 a = 0x00;
-					image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
-				}
-				printf("material %d is set to transparent\n", m);
-				scn->textures[mat->texid].opaque = 0;
 				break;
 			default:
 				printf("unknown alpha mode %d\n", mat->alpha);
 				break;
-		}
-
-		bool translucent = false;
-		for(p = 0; p < num_pixels; p++) {
-			if(((image[p] >> 24) & 0xFF) != 0xFF)
-				translucent = true;
-		}
-		if(translucent && tex->opaque) {
-			printf("texture %d marked as opaque but pixels are transparent\n", mat->texid);
-			scn->textures[mat->texid].opaque = 0;
-		} else if(!translucent && !tex->opaque) {
-			printf("texture %d marked as translucent but all pixels are opaque (%d)\n", mat->texid, tex->format);
-			scn->textures[mat->texid].opaque = 1;
 		}
 
 		glGenTextures(1, &scn->materials[m].tex);
@@ -978,7 +951,7 @@ void SCENE_render_all(SCENE* scene)
 		MATERIAL* material = &scene->materials[mesh->matid];
 		TEXTURE* texture = &scene->textures[material->texid];
 
-		if(material->texid != 0xFFFF && !texture->opaque)
+		if(material->texid != 0xFFFF && (!texture->opaque || material->alpha != 31))
 			continue;
 
 		SCENE_render_mesh(scene, i);
@@ -996,7 +969,7 @@ void SCENE_render_all(SCENE* scene)
 		MATERIAL* material = &scene->materials[mesh->matid];
 		TEXTURE* texture = &scene->textures[material->texid];
 
-		if(material->texid != 0xFFFF && texture->opaque)
+		if(material->texid != 0xFFFF && !(!texture->opaque || material->alpha != 31))
 			continue;
 
 		SCENE_render_mesh(scene, i);
@@ -1040,7 +1013,7 @@ void SCENE_render_all_nodes(SCENE* scene)
 				MATERIAL* material = &scene->materials[mesh->matid];
 				TEXTURE* texture = &scene->textures[material->texid];
 
-				if(material->texid != 0xFFFF && !texture->opaque)
+				if(material->texid != 0xFFFF && (!texture->opaque || material->alpha != 31))
 					continue;
 
 				SCENE_render_mesh(scene, id);
@@ -1063,7 +1036,7 @@ void SCENE_render_all_nodes(SCENE* scene)
 				MATERIAL* material = &scene->materials[mesh->matid];
 				TEXTURE* texture = &scene->textures[material->texid];
 
-				if(material->texid != 0xFFFF && texture->opaque)
+				if(material->texid != 0xFFFF && !(!texture->opaque || material->alpha != 31))
 					continue;
 
 				SCENE_render_mesh(scene, id);
