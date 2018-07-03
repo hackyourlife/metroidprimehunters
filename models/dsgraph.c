@@ -261,6 +261,7 @@ int main(int argc, char **argv)
 	unsigned int i;
 	char* modestring = NULL;
 	int use_game_mode = 0;
+	unsigned int layer_mask = 0xFFFFFFFF;
 	argc--;
 	argv++;
 	if(argc > 1 && !strcmp(argv[0], "-f")) {
@@ -268,9 +269,9 @@ int main(int argc, char **argv)
 		argc -= 2;
 		argv += 2;
 	}
-	if((argc != 1) && (argc != 2)) {
+	if((argc != 1) && (argc != 2) && (argc != 3)) {
 		printf("Metroid Prime Hunters model viewer\n");
-		printf("Usage: dsgraph <filename> [textures]\n");
+		printf("Usage: dsgraph <filename> [textures [layer-id]]\n");
 		exit(0);
 	}
 
@@ -308,8 +309,37 @@ int main(int argc, char **argv)
 	glDepthFunc(GL_LEQUAL);
 
 	const char* model = argv[0];
-	const char* textures = argc == 2 ? argv[1] : NULL;
-	scene = SCENE_load_file(model, textures);
+	const char* textures = argc >= 2 ? argv[1] : NULL;
+
+	if(argc == 3) {
+		char* mask = argv[2];
+		if(strlen(mask)) {
+			layer_mask = 0;
+			unsigned int p;
+			for(p = 0; p < strlen(mask); p += 4) {
+				char* ch1 = &mask[p];
+				if(*ch1 != '_')
+					break;
+				if(*(u16*)ch1 == *(u16*)"_s") {
+					int nr = mask[p + 3] - '0' + 10 * (mask[p + 2] - '0');
+					if(nr)
+						layer_mask = layer_mask & 0xC03F | ((((u32)layer_mask << 18 >> 24) | (1 << nr)) << 6);
+				}
+				u32 tag = *(u32*) ch1;
+				if(tag == *(u32*)"_ml0")
+					layer_mask |= LAYER_ML0;
+				if(tag == *(u32*)"_ml1")
+					layer_mask |= LAYER_ML1;
+				if(tag == *(u32*)"_mpu")
+					layer_mask |= LAYER_MPU;
+				if(tag == *(u32*)"_ctf")
+					layer_mask |= LAYER_CTF;
+			}
+		}
+	}
+
+	printf("layer mask: 0x%04x\n", layer_mask);
+	scene = SCENE_load_file(model, textures, layer_mask);
 
 	printf(" - Hold left mouse button to look around\n");
 	printf(" - Up/Down moves around\n");

@@ -1,6 +1,13 @@
 #ifndef __SCENE_H__
 #define __SCENE_H__
 
+typedef enum {
+	LAYER_ML0	= 0x0008,
+	LAYER_ML1	= 0x0010,
+	LAYER_MPU	= 0x0020,
+	LAYER_CTF	= 0x4000
+} LAYER_MASK;
+
 typedef struct {
 	char				name[64];
 	unsigned char			light;
@@ -20,7 +27,7 @@ typedef struct {
 	unsigned int			parent;
 	unsigned int			child;
 	unsigned int			next;
-	char*				some_name;
+	unsigned int			enabled;
 	unsigned int			mesh_count;
 	unsigned int			mesh_id;
 } NODE;
@@ -57,10 +64,11 @@ typedef struct {
 	float				min_z;
 	float				max_z;
 	char*				room_node_name;
+	int				room_node_id;
 } SCENE;
 
-SCENE*	SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsigned int texturesize);
-SCENE*	SCENE_load_file(const char* model, const char* textures);
+SCENE*	SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsigned int texturesize, int layer_mask);
+SCENE*	SCENE_load_file(const char* model, const char* textures, int layer_mask);
 void	SCENE_free(SCENE* scene);
 void	SCENE_render(SCENE* scene);
 

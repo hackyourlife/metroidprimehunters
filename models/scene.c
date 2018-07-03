@@ -74,7 +74,8 @@ typedef struct {
 	u8		name[64];
 	u8		light;
 	u8		culling;
-	u16		alpha;
+	u8		alpha;
+	u8		wireframe;
 	u16		palid;
 	u16		texid;
 	u8		x_repeat;
@@ -117,7 +118,7 @@ typedef struct {
 	u16		child;
 	u16		next;
 	u16		field_46;
-	u32		some_name;
+	u32		enabled;
 	u16		mesh_count;
 	u16		mesh_id;
 	u32		field_50;
@@ -214,6 +215,24 @@ typedef struct {
 	u16		num_matrices;
 } __attribute__((__packed__)) HEADER;
 
+static void update_bounds(SCENE* scene, float vtx_state[3])
+{
+	if(vtx_state[0] < scene->min_x) {
+		scene->min_x = vtx_state[0];
+	} else if(vtx_state[0] > scene->max_x) {
+		scene->max_x = vtx_state[0];
+	}
+	if(vtx_state[1] < scene->min_y) {
+		scene->min_y = vtx_state[1];
+	} else if(vtx_state[1] > scene->max_y) {
+		scene->max_y = vtx_state[1];
+	}
+	if(vtx_state[2] < scene->min_z) {
+		scene->min_z = vtx_state[0];
+	} else if(vtx_state[2] > scene->max_z) {
+		scene->max_z = vtx_state[2];
+	}
+}
 
 void do_reg(u32 reg, u32** data_pp, float vtx_state[3], SCENE* scene)
 {
@@ -272,21 +291,7 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3], SCENE* scene)
 			vtx_state[2] = ((float)z) / 4096.0f;
 			glVertex3fv(vtx_state);
 
-			if(vtx_state[0] < scene->min_x) {
-				scene->min_x = vtx_state[0];
-			} else if(vtx_state[0] > scene->max_x) {
-				scene->max_x = vtx_state[0];
-			}
-			if(vtx_state[1] < scene->min_y) {
-				scene->min_y = vtx_state[1];
-			} else if(vtx_state[1] > scene->max_y) {
-				scene->max_y = vtx_state[1];
-			}
-			if(vtx_state[2] < scene->min_z) {
-				scene->min_z = vtx_state[0];
-			} else if(vtx_state[2] > scene->max_z) {
-				scene->max_z = vtx_state[2];
-			}
+			update_bounds(scene, vtx_state);
 		}
 		break;
 
@@ -301,21 +306,7 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3], SCENE* scene)
 			vtx_state[2] = ((float)z) / 64.0f;
 			glVertex3fv(vtx_state);
 
-			if(vtx_state[0] < scene->min_x) {
-				scene->min_x = vtx_state[0];
-			} else if(vtx_state[0] > scene->max_x) {
-				scene->max_x = vtx_state[0];
-			}
-			if(vtx_state[1] < scene->min_y) {
-				scene->min_y = vtx_state[1];
-			} else if(vtx_state[1] > scene->max_y) {
-				scene->max_y = vtx_state[1];
-			}
-			if(vtx_state[2] < scene->min_z) {
-				scene->min_z = vtx_state[0];
-			} else if(vtx_state[2] > scene->max_z) {
-				scene->max_z = vtx_state[2];
-			}
+			update_bounds(scene, vtx_state);
 		}
 		break;
 
@@ -328,16 +319,7 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3], SCENE* scene)
 			vtx_state[1] = ((float)y) / 4096.0f;
 			glVertex3fv(vtx_state);
 
-			if(vtx_state[0] < scene->min_x) {
-				scene->min_x = vtx_state[0];
-			} else if(vtx_state[0] > scene->max_x) {
-				scene->max_x = vtx_state[0];
-			}
-			if(vtx_state[1] < scene->min_y) {
-				scene->min_y = vtx_state[1];
-			} else if(vtx_state[1] > scene->max_y) {
-				scene->max_y = vtx_state[1];
-			}
+			update_bounds(scene, vtx_state);
 		}
 		break;
 
@@ -350,16 +332,7 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3], SCENE* scene)
 			vtx_state[2] = ((float)z) / 4096.0f;
 			glVertex3fv(vtx_state);
 
-			if(vtx_state[0] < scene->min_x) {
-				scene->min_x = vtx_state[0];
-			} else if(vtx_state[0] > scene->max_x) {
-				scene->max_x = vtx_state[0];
-			}
-			if(vtx_state[2] < scene->min_z) {
-				scene->min_z = vtx_state[0];
-			} else if(vtx_state[2] > scene->max_z) {
-				scene->max_z = vtx_state[2];
-			}
+			update_bounds(scene, vtx_state);
 		}
 		break;
 
@@ -372,16 +345,7 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3], SCENE* scene)
 			vtx_state[2] = ((float)z) / 4096.0f;
 			glVertex3fv(vtx_state);
 
-			if(vtx_state[1] < scene->min_y) {
-				scene->min_y = vtx_state[1];
-			} else if(vtx_state[1] > scene->max_y) {
-				scene->max_y = vtx_state[1];
-			}
-			if(vtx_state[2] < scene->min_z) {
-				scene->min_z = vtx_state[0];
-			} else if(vtx_state[2] > scene->max_z) {
-				scene->max_z = vtx_state[2];
-			}
+			update_bounds(scene, vtx_state);
 		}
 		break;
 
@@ -396,21 +360,7 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3], SCENE* scene)
 			vtx_state[2] += ((float)z) / 4096.0f;
 			glVertex3fv(vtx_state);
 
-			if(vtx_state[0] < scene->min_x) {
-				scene->min_x = vtx_state[0];
-			} else if(vtx_state[0] > scene->max_x) {
-				scene->max_x = vtx_state[0];
-			}
-			if(vtx_state[1] < scene->min_y) {
-				scene->min_y = vtx_state[1];
-			} else if(vtx_state[1] > scene->max_y) {
-				scene->max_y = vtx_state[1];
-			}
-			if(vtx_state[2] < scene->min_z) {
-				scene->min_z = vtx_state[0];
-			} else if(vtx_state[2] > scene->max_z) {
-				scene->max_z = vtx_state[2];
-			}
+			update_bounds(scene, vtx_state);
 		}
 		break;
 
@@ -745,7 +695,59 @@ static char* get_room_node_name(NODE* nodes, unsigned int node_cnt)
 	return name;
 }
 
-SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsigned int texturesize)
+static int get_node_child(const char* name, SCENE* scene)
+{
+	unsigned int i;
+	if(scene->num_nodes <= 0)
+		return -1;
+	for(i = 0; i < scene->num_nodes; i++) {
+		NODE* node = &scene->nodes[i];
+		if(!strcmp(node->name, name))
+			return node->child;
+	}
+	return -1;
+}
+
+void SCENE_filter_nodes(SCENE* scene, int layer_mask)
+{
+	unsigned int i;
+	for(i = 0; i < scene->num_nodes; i++) {
+		NODE* node = &scene->nodes[i];
+		int flags = 0;
+		if(strlen(node->name)) {
+			unsigned int p;
+			int keep = 0;
+			for(p = 0; p < strlen(node->name); p += 4) {
+				char* ch1 = &node->name[p];
+				if(*ch1 != '_')
+					break;
+				if(*(u16*)ch1 == *(u16*)"_s") {
+					int nr = node->name[p + 3] - '0' + 10 * (node->name[p + 2] - '0');
+					if(nr)
+						flags = flags & 0xC03F | ((((u32)flags << 18 >> 24) | (1 << nr)) << 6);
+				}
+				u32 tag = *(u32*) ch1;
+				if(tag == *(u32*)"_ml0")
+					flags |= LAYER_ML0;
+				if(tag == *(u32*)"_ml1")
+					flags |= LAYER_ML1;
+				if(tag == *(u32*)"_mpu")
+					flags |= LAYER_MPU;
+				if(tag == *(u32*)"_ctf")
+					flags |= LAYER_CTF;
+			}
+
+			if(!p || flags & layer_mask)
+				keep = 1;
+			if(!keep) {
+				printf("filtering node '%s'\n", node->name);
+				node->enabled = 0;
+			}
+		}
+	}
+}
+
+SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsigned int texturesize, int layer_mask)
 {
 	unsigned int i;
 
@@ -777,17 +779,21 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 		Node* raw = &nodes[i];
 
 		strncpy(node->name, raw->name, 64);
-		node->parent = get16bit_LE((u8*)&raw->parent);
-		node->child = get16bit_LE((u8*)&raw->child);
-		node->next = get16bit_LE((u8*)&raw->next);
+		node->parent = (s16) get16bit_LE((u8*)&raw->parent);
+		node->child = (s16) get16bit_LE((u8*)&raw->child);
+		node->next = (s16) get16bit_LE((u8*)&raw->next);
 		node->mesh_count = get16bit_LE((u8*)&raw->mesh_count);
-		node->mesh_id = get16bit_LE((u8*)&raw->mesh_id);
+		node->mesh_id = (s16) get16bit_LE((u8*)&raw->mesh_id);
+		node->enabled = get32bit_LE((u8*)&raw->enabled);
 	}
 
 	scene->room_node_name = get_room_node_name(scene->nodes, scene->num_nodes);
+	scene->room_node_id = get_node_child(scene->room_node_name, scene);
+
+	SCENE_filter_nodes(scene, layer_mask);
 
 	printf("scale: %f\n", scene->scale);
-	printf("room node: '%s'\n", scene->room_node_name);
+	printf("room node: '%s' (%d)\n", scene->room_node_name, scene->room_node_id);
 
 	if(!scene->materials || !scene->textures)
 		fatal("not enough memory");
@@ -802,7 +808,7 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 		mat->texid = m->texid;
 		mat->light = m->light;
 		mat->culling = m->culling;
-		mat->alpha = get16bit_LE((u8*)&m->alpha);
+		mat->alpha = m->alpha;
 		mat->x_repeat = m->x_repeat;
 		mat->y_repeat = m->y_repeat;
 		mat->polygon_mode = get32bit_LE((u8*)&m->polygon_mode);
@@ -865,7 +871,7 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 	return scene;
 }
 
-SCENE* SCENE_load_file(const char* model, const char* textures)
+SCENE* SCENE_load_file(const char* model, const char* textures, int layer_mask)
 {
 	FILE* file = fopen(model, "rb");
 	if(!file) {
@@ -897,7 +903,7 @@ SCENE* SCENE_load_file(const char* model, const char* textures)
 		fclose(file);
 	}
 
-	SCENE* scene = SCENE_load(content, scenesize, texturedata, texturesize);
+	SCENE* scene = SCENE_load(content, scenesize, texturedata, texturesize, layer_mask);
 	if(texturedata != content)
 		free(texturedata);
 	free(content);
@@ -921,7 +927,48 @@ void SCENE_free(SCENE* scene)
 	free(scene);
 }
 
-void SCENE_render(SCENE* scene)
+void SCENE_render_mesh(SCENE* scene, int mesh_id)
+{
+	if(mesh_id >= scene->num_meshes) {
+		printf("trying to render mesh %d, but scene only has %d meshes\n", mesh_id, scene->num_meshes);
+		return;
+	}
+
+	MESH* mesh = &scene->meshes[mesh_id];
+	MATERIAL* material = &scene->materials[mesh->matid];
+	TEXTURE* texture = &scene->textures[material->texid];
+
+	if(material->texid != 0xFFFF) {
+		glBindTexture(GL_TEXTURE_2D, material->tex);
+
+		//Convert pixel coords to normalised STs
+		glMatrixMode(GL_TEXTURE);
+		glLoadIdentity();
+		glScalef(1.0f / texture->width, 1.0f / texture->height, 1.0f);
+		glScalef(material->scale_s, material->scale_t, 1.0f);
+	} else {
+		glBindTexture(GL_TEXTURE_2D, 0);
+		return;
+	}
+
+	switch(material->culling) {
+		case DOUBLE_SIDED:
+			glDisable(GL_CULL_FACE);
+			break;
+		case BACK_SIDE:
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_FRONT);
+			break;
+		case FRONT_SIDE:
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_BACK);
+			break;
+	}
+
+	glCallList(scene->dlists[mesh->dlistid]);
+}
+
+void SCENE_render_all(SCENE* scene)
 {
 	// GLboolean cull;
 	unsigned int i;
@@ -931,37 +978,10 @@ void SCENE_render(SCENE* scene)
 		MATERIAL* material = &scene->materials[mesh->matid];
 		TEXTURE* texture = &scene->textures[material->texid];
 
-		if(material->texid != 0xFFFF) {
-			if(!texture->opaque) {
-				continue;
-			}
+		if(material->texid != 0xFFFF && !texture->opaque)
+			continue;
 
-			glBindTexture(GL_TEXTURE_2D, material->tex);
-
-			//Convert pixel coords to normalised STs
-			glMatrixMode(GL_TEXTURE);
-			glLoadIdentity();
-			glScalef(1.0f / texture->width, 1.0f / texture->height, 1.0f);
-			glScalef(material->scale_s, material->scale_t, 1.0f);
-		} else {
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-
-		switch(material->culling) {
-			case DOUBLE_SIDED:
-				glDisable(GL_CULL_FACE);
-				break;
-			case BACK_SIDE:
-				glEnable(GL_CULL_FACE);
-				glCullFace(GL_FRONT);
-				break;
-			case FRONT_SIDE:
-				glEnable(GL_CULL_FACE);
-				glCullFace(GL_BACK);
-				break;
-		}
-
-		glCallList(scene->dlists[mesh->dlistid]);
+		SCENE_render_mesh(scene, i);
 	}
 
 
@@ -976,41 +996,86 @@ void SCENE_render(SCENE* scene)
 		MATERIAL* material = &scene->materials[mesh->matid];
 		TEXTURE* texture = &scene->textures[material->texid];
 
-		if(material->texid != 0xFFFF) {
-			if(texture->opaque) {
-				continue;
-			}
+		if(material->texid != 0xFFFF && texture->opaque)
+			continue;
 
-			glBindTexture(GL_TEXTURE_2D, material->tex);
-
-			//Convert pixel coords to normalised STs
-			glMatrixMode(GL_TEXTURE);
-			glLoadIdentity();
-			glScalef(1.0f / texture->width, 1.0f / texture->height, 1.0f);
-			glScalef(material->scale_s, material->scale_t, 1.0f);
-		} else {
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-
-		switch(material->culling) {
-			case DOUBLE_SIDED:
-				glDisable(GL_CULL_FACE);
-				break;
-			case BACK_SIDE:
-				glEnable(GL_CULL_FACE);
-				glCullFace(GL_FRONT);
-				break;
-			case FRONT_SIDE:
-				glEnable(GL_CULL_FACE);
-				glCullFace(GL_BACK);
-				break;
-		}
-
-		glCallList(scene->dlists[mesh->dlistid]);
+		SCENE_render_mesh(scene, i);
 	}
 	glDepthMask(GL_TRUE);
 	glDisable(GL_BLEND);
 	// if(cull) {
 	// 	glEnable(GL_CULL_FACE);
 	// }
+}
+
+void SCENE_render_node_tree(SCENE* scene, int node_idx)
+{
+	unsigned int i;
+	int start_node = node_idx;
+	while(node_idx != -1) {
+		NODE* node = &scene->nodes[node_idx];
+		if(node->mesh_count > 0 && node->enabled == 1) {
+			int mesh_id = node->mesh_id / 2;
+			for(i = 0; i < node->mesh_count; i++)
+				SCENE_render_mesh(scene, mesh_id + i);
+		}
+		if(node->child != -1)
+			SCENE_render_node_tree(scene, node->child);
+		node_idx = node->next;
+	}
+}
+
+void SCENE_render_all_nodes(SCENE* scene)
+{
+	unsigned int i, j;
+
+	// pass 1: opaque
+	for(i = 0; i < scene->num_nodes; i++) {
+		NODE* node = &scene->nodes[i];
+		if(node->mesh_count > 0 && node->enabled == 1) {
+			int mesh_id = node->mesh_id / 2;
+			for(j = 0; j < node->mesh_count; j++) {
+				int id = mesh_id + j;
+				MESH* mesh = &scene->meshes[id];
+				MATERIAL* material = &scene->materials[mesh->matid];
+				TEXTURE* texture = &scene->textures[material->texid];
+
+				if(material->texid != 0xFFFF && !texture->opaque)
+					continue;
+
+				SCENE_render_mesh(scene, id);
+			}
+		}
+	}
+
+	// pass 2: translucent
+	glEnable(GL_BLEND);
+	glDepthMask(GL_FALSE);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	for(i = 0; i < scene->num_nodes; i++) {
+		NODE* node = &scene->nodes[i];
+		if(node->mesh_count > 0 && node->enabled == 1) {
+			int mesh_id = node->mesh_id / 2;
+			for(j = 0; j < node->mesh_count; j++) {
+				int id = mesh_id + j;
+				MESH* mesh = &scene->meshes[id];
+				MATERIAL* material = &scene->materials[mesh->matid];
+				TEXTURE* texture = &scene->textures[material->texid];
+
+				if(material->texid != 0xFFFF && texture->opaque)
+					continue;
+
+				SCENE_render_mesh(scene, id);
+			}
+		}
+	}
+
+	glDepthMask(GL_TRUE);
+	glDisable(GL_BLEND);
+}
+
+void SCENE_render(SCENE* scene)
+{
+	SCENE_render_all_nodes(scene);
 }
