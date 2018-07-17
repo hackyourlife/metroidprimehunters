@@ -207,7 +207,7 @@ void process()
 {
 	long now = glutGet(GLUT_ELAPSED_TIME);
 	float dt = (now - time) / 1000.0f;
-	float distance = dt;
+	float distance = dt * 64.0f;
 	if(key_down_speed)
 		distance *= 10.0f;
 	if(key_down_forward)
@@ -240,7 +240,7 @@ void display_func(void)
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(90.0f, aspect, 0.001f, size);
+	gluPerspective(90.0f, aspect, 0.001f, size * scene->scale);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();

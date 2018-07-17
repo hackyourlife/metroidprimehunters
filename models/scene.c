@@ -392,6 +392,7 @@ void do_reg(u32 reg, u32** data_pp, float vtx_state[3], SCENE* scene)
 
 		//Hmm?
 		default: {
+			printf("unhandled write to register 0x%x\n", 0x4000000 + reg);
 			fatal("Unhandled reg write\n");
 		}
 		break;
@@ -751,6 +752,7 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 	HEADER* rawheader = (HEADER*) scenedata;
 
 	scene->scale		= get32bit_LE((u8*)&rawheader->scale) / 4096.0f;
+	scene->scale		*= 1 << get32bit_LE((u8*)&rawheader->modelview_mtx_shamt);
 
 	Material* materials	= (Material*)	((uintptr_t)scenedata + (uintptr_t)get32bit_LE((u8*)&rawheader->materials));
 	Dlist* dlists		= (Dlist*)	((uintptr_t)scenedata + (uintptr_t)get32bit_LE((u8*)&rawheader->dlists));
