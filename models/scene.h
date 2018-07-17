@@ -17,6 +17,8 @@ typedef struct {
 	unsigned int			polygon_mode;
 	float				scale_s;
 	float				scale_t;
+	float				translate_s;
+	float				translate_t;
 	unsigned int			alpha;
 	unsigned int			texid;
 	unsigned int			tex;

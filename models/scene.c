@@ -96,8 +96,8 @@ typedef struct {
 	u32		scale_t;
 	u16		rot_z;
 	u16		field_72;
-	u32		scale_width;
-	u32		scale_height;
+	u32		translate_s;
+	u32		translate_t;
 	u16		material_animation_id;
 	u16		field_7E;
 	u8		packed_repeat_mode;
@@ -809,6 +809,8 @@ SCENE* SCENE_load(u8* scenedata, unsigned int scenesize, u8* texturedata, unsign
 		mat->polygon_mode = get32bit_LE((u8*)&m->polygon_mode);
 		mat->scale_s = FX_FX32_TO_F32(get32bit_LE((u8*)&m->scale_s));
 		mat->scale_t = FX_FX32_TO_F32(get32bit_LE((u8*)&m->scale_t));
+		mat->translate_s = FX_FX32_TO_F32(get32bit_LE((u8*)&m->translate_s));
+		mat->translate_t = FX_FX32_TO_F32(get32bit_LE((u8*)&m->translate_t));
 
 		unsigned int p = m->palid;
 		if(p == 0xFFFF)
@@ -939,6 +941,7 @@ void SCENE_render_mesh(SCENE* scene, int mesh_id)
 		//Convert pixel coords to normalised STs
 		glMatrixMode(GL_TEXTURE);
 		glLoadIdentity();
+		glTranslatef(material->translate_s, material->translate_t, 0.0f);
 		glScalef(1.0f / texture->width, 1.0f / texture->height, 1.0f);
 		glScalef(material->scale_s, material->scale_t, 1.0f);
 	} else {
