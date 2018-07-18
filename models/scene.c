@@ -41,17 +41,23 @@ enum CULL_MODE {
 	FRONT_SIDE = 2
 };
 
-enum POLYGON_MODE {
-	MODULATION = 0,
-	DECAL = 1,
-	HIGHLIGHT = 2,
-	SHADOW = 3
+enum GXPolygonMode {
+	GX_POLYGONMODE_MODULATE = 0,
+	GX_POLYGONMODE_DECAL = 1,
+	GX_POLYGONMODE_TOON = 2,
+	GX_POLYGONMODE_SHADOW = 3
 };
 
 enum REPEAT_MODE {
 	CLAMP = 0,
 	REPEAT = 1,
 	MIRROR = 2
+};
+
+enum RENDER_MODE {
+	NORMAL = 0,
+	DECAL = 1,
+	TRANSLUCENT = 2
 };
 
 typedef struct {
@@ -85,7 +91,7 @@ typedef struct {
 	Color3		specular;
 	u8		field_53;
 	u32		polygon_mode;
-	u8		polygon_id;
+	u8		render_mode;
 	u8		anim_flags;
 	u16		field_5A;
 	u32		texcoord_transform_mode;
@@ -592,9 +598,9 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 
 		u32 p;
 		switch(mat->polygon_mode) {
-			case MODULATION:
+			case GX_POLYGONMODE_MODULATE:
 				break;
-			case DECAL:
+			case GX_POLYGONMODE_DECAL:
 				for(p = 0; p < num_pixels; p++) {
 					u32 col = image[p];
 					u32 r = (col >>  0) & 0xFF;
@@ -604,9 +610,9 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 					image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 				}
 				break;
-			case HIGHLIGHT:
+			case GX_POLYGONMODE_TOON:
 				break;
-			case SHADOW:
+			case GX_POLYGONMODE_SHADOW:
 				break;
 			default:
 				printf("unknown alpha mode %d\n", mat->alpha);
@@ -622,7 +628,7 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				break;
 			}
 		}
-		scn->materials[m].translucent = !tex->opaque || mat->alpha != 31;
+		scn->materials[m].translucent = mat->render_mode == TRANSLUCENT || mat->render_mode == DECAL || mat->alpha != 31;
 		if(scn->materials[m].translucent) {
 			if(!translucent) {
 				printf("%d [%s]: strange, this should be opaque (alpha: %d, fmt: %d, opaque: %d)\n", m, mat->name, mat->alpha, tex->format, tex->opaque);
