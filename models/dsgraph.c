@@ -227,9 +227,9 @@ void display_func(void)
 	glGetFloatv(GL_VIEWPORT, vp);
 	float aspect = (vp[2] - vp[0]) / (vp[3] - vp[1]);
 
-	float size_x = 2 * fabsf(scene->max_x - scene->min_x);
-	float size_y = 2 * fabsf(scene->max_y - scene->min_y);
-	float size_z = 2 * fabsf(scene->max_z - scene->min_z);
+	float size_x = fabsf(scene->max_x - scene->min_x);
+	float size_y = fabsf(scene->max_y - scene->min_y);
+	float size_z = fabsf(scene->max_z - scene->min_z);
 	float size = size_x;
 	if(size_y > size) {
 		size = size_y;
@@ -307,6 +307,8 @@ int main(int argc, char **argv)
 	glEnable(GL_CULL_FACE);
 
 	glDepthFunc(GL_LEQUAL);
+
+	glClearColor(0.0, 0.0, 0.0, 0.0);
 
 	const char* model = argv[0];
 	const char* textures = argc >= 2 ? argv[1] : NULL;
