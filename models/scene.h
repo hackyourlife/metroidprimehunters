@@ -22,7 +22,7 @@ typedef struct {
 	unsigned int			alpha;
 	unsigned int			texid;
 	unsigned int			tex;
-	unsigned int			translucent;
+	unsigned int			render_mode;
 } MATERIAL;
 
 typedef struct {

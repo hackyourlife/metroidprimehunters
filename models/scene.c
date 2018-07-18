@@ -628,15 +628,18 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				break;
 			}
 		}
-		scn->materials[m].translucent = mat->render_mode == TRANSLUCENT || mat->render_mode == DECAL || mat->alpha != 31;
-		if(scn->materials[m].translucent) {
+		scn->materials[m].render_mode = mat->render_mode;
+		if(mat->alpha < 31) {
+			scn->materials[m].render_mode = TRANSLUCENT;
+		}
+		if(scn->materials[m].render_mode) {
 			if(!translucent) {
 				printf("%d [%s]: strange, this should be opaque (alpha: %d, fmt: %d, opaque: %d)\n", m, mat->name, mat->alpha, tex->format, tex->opaque);
-				scn->materials[m].translucent = 0;
+				scn->materials[m].render_mode = NORMAL;
 			}
 		} else if(translucent) {
 			printf("%d [%s]: strange, this should be translucent (alpha: %d, fmt: %d, opaque: %d)\n", m, mat->name, mat->alpha, tex->format, tex->opaque);
-			scn->materials[m].translucent = 1;
+			scn->materials[m].render_mode = TRANSLUCENT;
 		}
 
 		glGenTextures(1, &scn->materials[m].tex);
@@ -983,7 +986,7 @@ void SCENE_render_all(SCENE* scene)
 		MESH* mesh = &scene->meshes[i];
 		MATERIAL* material = &scene->materials[mesh->matid];
 
-		if(material->texid != 0xFFFF && material->translucent)
+		if(material->render_mode != NORMAL)
 			continue;
 
 		SCENE_render_mesh(scene, i, 1);
@@ -1000,7 +1003,7 @@ void SCENE_render_all(SCENE* scene)
 		MESH* mesh = &scene->meshes[i];
 		MATERIAL* material = &scene->materials[mesh->matid];
 
-		if(material->texid != 0xFFFF && !material->translucent)
+		if(material->render_mode == NORMAL)
 			continue;
 
 		SCENE_render_mesh(scene, i, 1);
@@ -1044,7 +1047,7 @@ void SCENE_render_all_nodes(SCENE* scene)
 				MESH* mesh = &scene->meshes[id];
 				MATERIAL* material = &scene->materials[mesh->matid];
 
-				if(material->texid != 0xFFFF && material->translucent)
+				if(material->render_mode != NORMAL)
 					continue;
 
 				SCENE_render_mesh(scene, id, 0);
@@ -1052,11 +1055,30 @@ void SCENE_render_all_nodes(SCENE* scene)
 		}
 	}
 
-	// pass 2: translucent
-	glEnable(GL_BLEND);
+	// pass 2: decal
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(-1, -1);
 	glDepthMask(GL_FALSE);
+	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	for(i = 0; i < scene->num_nodes; i++) {
+		NODE* node = &scene->nodes[i];
+		if(node->mesh_count > 0 && node->enabled == 1) {
+			int mesh_id = node->mesh_id / 2;
+			for(j = 0; j < node->mesh_count; j++) {
+				int id = mesh_id + j;
+				MESH* mesh = &scene->meshes[id];
+				MATERIAL* material = &scene->materials[mesh->matid];
 
+				if(material->render_mode != DECAL)
+					continue;
+
+				SCENE_render_mesh(scene, id, 0);
+			}
+		}
+	}
+
+	// pass 3: translucent
 	for(i = 0; i < scene->num_nodes; i++) {
 		NODE* node = &scene->nodes[i];
 		if(node->mesh_count > 0 && node->enabled == 1) {
@@ -1067,13 +1089,16 @@ void SCENE_render_all_nodes(SCENE* scene)
 				MATERIAL* material = &scene->materials[mesh->matid];
 				TEXTURE* texture = &scene->textures[material->texid];
 
-				if(material->texid != 0xFFFF && !material->translucent)
+				if(material->render_mode != TRANSLUCENT)
 					continue;
 
 				SCENE_render_mesh(scene, id, 0);
 			}
 		}
 	}
+
+	glPolygonOffset(0, 0);
+	glDisable(GL_POLYGON_OFFSET_FILL);
 
 	glDepthMask(GL_TRUE);
 	glDisable(GL_BLEND);
