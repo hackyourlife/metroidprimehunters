@@ -80,9 +80,9 @@ typedef struct {
 	u16		texid;
 	u8		x_repeat;
 	u8		y_repeat;
-	Color3		color1;
-	Color3		color2;
-	Color3		color3;
+	Color3		diffuse;
+	Color3		ambient;
+	Color3		specular;
 	u8		field_53;
 	u32		polygon_mode;
 	u8		polygon_id;
@@ -924,7 +924,7 @@ void SCENE_free(SCENE* scene)
 	free(scene);
 }
 
-void SCENE_render_mesh(SCENE* scene, int mesh_id)
+void SCENE_render_mesh(SCENE* scene, int mesh_id, int render_notex)
 {
 	if(mesh_id >= scene->num_meshes) {
 		printf("trying to render mesh %d, but scene only has %d meshes\n", mesh_id, scene->num_meshes);
@@ -946,7 +946,8 @@ void SCENE_render_mesh(SCENE* scene, int mesh_id)
 		glScalef(material->scale_s, material->scale_t, 1.0f);
 	} else {
 		glBindTexture(GL_TEXTURE_2D, 0);
-		return;
+		if(!render_notex)
+			return;
 	}
 
 	switch(material->culling) {
@@ -979,7 +980,7 @@ void SCENE_render_all(SCENE* scene)
 		if(material->texid != 0xFFFF && material->translucent)
 			continue;
 
-		SCENE_render_mesh(scene, i);
+		SCENE_render_mesh(scene, i, 1);
 	}
 
 
@@ -992,12 +993,11 @@ void SCENE_render_all(SCENE* scene)
 	for(i = 0; i < scene->num_meshes; i++) {
 		MESH* mesh = &scene->meshes[i];
 		MATERIAL* material = &scene->materials[mesh->matid];
-		TEXTURE* texture = &scene->textures[material->texid];
 
 		if(material->texid != 0xFFFF && !material->translucent)
 			continue;
 
-		SCENE_render_mesh(scene, i);
+		SCENE_render_mesh(scene, i, 1);
 	}
 	glDepthMask(GL_TRUE);
 	glDisable(GL_BLEND);
@@ -1015,7 +1015,7 @@ void SCENE_render_node_tree(SCENE* scene, int node_idx)
 		if(node->mesh_count > 0 && node->enabled == 1) {
 			int mesh_id = node->mesh_id / 2;
 			for(i = 0; i < node->mesh_count; i++)
-				SCENE_render_mesh(scene, mesh_id + i);
+				SCENE_render_mesh(scene, mesh_id + i, 0);
 		}
 		if(node->child != -1)
 			SCENE_render_node_tree(scene, node->child);
@@ -1037,12 +1037,11 @@ void SCENE_render_all_nodes(SCENE* scene)
 				int id = mesh_id + j;
 				MESH* mesh = &scene->meshes[id];
 				MATERIAL* material = &scene->materials[mesh->matid];
-				TEXTURE* texture = &scene->textures[material->texid];
 
 				if(material->texid != 0xFFFF && material->translucent)
 					continue;
 
-				SCENE_render_mesh(scene, id);
+				SCENE_render_mesh(scene, id, 0);
 			}
 		}
 	}
@@ -1065,7 +1064,7 @@ void SCENE_render_all_nodes(SCENE* scene)
 				if(material->texid != 0xFFFF && !material->translucent)
 					continue;
 
-				SCENE_render_mesh(scene, id);
+				SCENE_render_mesh(scene, id, 0);
 			}
 		}
 	}
@@ -1076,5 +1075,8 @@ void SCENE_render_all_nodes(SCENE* scene)
 
 void SCENE_render(SCENE* scene)
 {
-	SCENE_render_all_nodes(scene);
+	if(scene->room_node_id == -1)
+		SCENE_render_all(scene);
+	else
+		SCENE_render_all_nodes(scene);
 }
