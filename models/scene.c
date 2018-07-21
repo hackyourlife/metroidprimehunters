@@ -57,7 +57,9 @@ enum REPEAT_MODE {
 enum RENDER_MODE {
 	NORMAL = 0,
 	DECAL = 1,
-	TRANSLUCENT = 2
+	TRANSLUCENT = 2,
+	// viewer only, not stored in a file
+	ALPHA_TEST = 3
 };
 
 typedef struct {
@@ -642,6 +644,19 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 			scn->materials[m].render_mode = TRANSLUCENT;
 		}
 
+		if(scn->materials[m].render_mode == TRANSLUCENT) {
+			if(alpha == 1.0f) {
+				switch(tex->format) {
+					case 0:
+					case 1:
+					case 2:
+					case 5:
+						printf("%d [%s]: using alpha test\n", m, mat->name);
+						scn->materials[m].render_mode = ALPHA_TEST;
+				}
+			}
+		}
+
 		glGenTextures(1, &scn->materials[m].tex);
 		glBindTexture(GL_TEXTURE_2D, scn->materials[m].tex);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->width, tex->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)image);
@@ -1078,7 +1093,31 @@ void SCENE_render_all_nodes(SCENE* scene)
 		}
 	}
 
-	// pass 3: translucent
+	// pass 3: translucent with alpha test
+	glEnable(GL_ALPHA_TEST);
+	glDepthMask(GL_TRUE);
+	glAlphaFunc(GL_GEQUAL, 0.5f);
+	for(i = 0; i < scene->num_nodes; i++) {
+		NODE* node = &scene->nodes[i];
+		if(node->mesh_count > 0 && node->enabled == 1) {
+			int mesh_id = node->mesh_id / 2;
+			for(j = 0; j < node->mesh_count; j++) {
+				int id = mesh_id + j;
+				MESH* mesh = &scene->meshes[id];
+				MATERIAL* material = &scene->materials[mesh->matid];
+				TEXTURE* texture = &scene->textures[material->texid];
+
+				if(material->render_mode != ALPHA_TEST)
+					continue;
+
+				SCENE_render_mesh(scene, id, 0);
+			}
+		}
+	}
+	glDisable(GL_ALPHA_TEST);
+
+	// pass 4: translucent
+	glDepthMask(GL_FALSE);
 	for(i = 0; i < scene->num_nodes; i++) {
 		NODE* node = &scene->nodes[i];
 		if(node->mesh_count > 0 && node->enabled == 1) {
