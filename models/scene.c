@@ -475,8 +475,9 @@ void build_meshes(SCENE* scene, Mesh* meshes, Dlist* dlists, u8* scenedata, unsi
 		0 = 2bit palettised
 		1 = 4bit palettised
 		2 = 8bit palettised
-		4 = 8bit greyscale
+		4 = 8bit A5I3
 		5 = 16bit RGBA
+		6 = 8bit A3I5
 
 	There may be more, but these are the only ones used by Metroid
 
@@ -590,6 +591,18 @@ void make_textures(SCENE* scn, Material* materials, unsigned int num_materials, 
 				u32 g = ((col >>  5) & 0x1F) << 3;
 				u32 b = ((col >> 10) & 0x1F) << 3;
 				u32 a = ((col & 0x8000) ? 0x00 : 0xFF) * alpha;
+				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
+			}
+		} else if(tex->format == 6) {			// A3I5
+			u32 p;
+			for(p = 0; p < num_pixels; p++) {
+				u8 entry = texels[p];
+				u8 i = (entry & 0x1F);
+				u16 col = get16bit_LE((u8*)&paxels[i]);
+				u32 r = ((col >>  0) & 0x1F) << 3;
+				u32 g = ((col >>  5) & 0x1F) << 3;
+				u32 b = ((col >> 10) & 0x1F) << 3;
+				u32 a = ((entry >> 5) / 7.0 * 255.0) * alpha;
 				image[p] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
 			}
 		} else {
